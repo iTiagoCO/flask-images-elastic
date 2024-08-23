@@ -8,10 +8,12 @@ app.config.from_object(Config)
 # Load model, run against the image and create image embedding
 img_model = SentenceTransformer('clip-ViT-B-32')
 
-es = Elasticsearch(hosts=app.config['ELASTICSEARCH_HOST'],
-                   basic_auth=(app.config['ELASTICSEARCH_USER'], app.config['ELASTICSEARCH_PASSWORD']),
-                   verify_certs= app.config['VERIFY_TLS'],
-                   ca_certs='app/conf/ca.crt')
+# Configuración de Elasticsearch usando Cloud ID
+cloud_id = app.config['ELASTICSEARCH_CLOUD_ID']
+es = Elasticsearch(
+    cloud_id=cloud_id,
+    basic_auth=(app.config['ELASTICSEARCH_USER'], app.config['ELASTICSEARCH_PASSWORD']),
+)
 
 from app import routes
 

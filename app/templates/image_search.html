@@ -60,8 +60,8 @@
                     {{ document._score }}
                 </td>
                 <td>
-                    <img src="static/images/{{ document.fields.relative_path[0] }}"
-                         alt="{{ document.fields.image_name[0] }}" width="400">
+                    <img src="{{ url_for('static', filename='images/' + document.fields.relative_path[0]) }}"
+                            alt="{{ document.fields.image_name[0] }}" width="400">
                     <button name="find_similar_image" value="{{ document.fields.image_id[0] }}" id="add-update"
                             type="submit" class="button is-info">Find similar images</button>
                 </td>

@@ -1,5 +1,5 @@
 from app import app, img_model, es
-from flask import render_template, redirect, url_for, request, send_file
+from flask import render_template, redirect, url_for, request, send_file, abort, current_app
 from app.searchForm import SearchForm
 from app.inputFileForm import InputFileForm
 from werkzeug.utils import secure_filename
@@ -7,17 +7,16 @@ from werkzeug.exceptions import RequestEntityTooLarge
 import elasticsearch
 import os
 from PIL import Image
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 INFER_ENDPOINT = "/_ml/trained_models/{model}/deployment/_infer"
 INFER_MODEL_IM_SEARCH = 'sentence-transformers__clip-vit-b-32-multilingual-v1'
 
 INDEX_IM_EMBED = 'my-image-embeddings'
 
-HOST = app.config['ELASTICSEARCH_HOST']
-AUTH = (app.config['ELASTICSEARCH_USER'], app.config['ELASTICSEARCH_PASSWORD'])
-HEADERS = {'Content-Type': 'application/json'}
-
-TLS_VERIFY = app.config['VERIFY_TLS']
+# Removed HOST and AUTH since they are not needed with Cloud ID
 
 app_models = {}
 
@@ -146,11 +145,32 @@ def similar_image():
 @app.route('/image/<path:image_name>')
 def get_image(image_name):
     try:
-        # Use os.path.join to handle subdirectories
-        image_path = os.path.join('./static/images/', image_name)
-        return send_file(image_path, mimetype='image/jpg')
-    except FileNotFoundError:
-        return 'Image not found.'
+        # Construye la ruta absoluta usando app.root_path
+        image_path = os.path.join(app.root_path, 'static', 'images', image_name)
+        app.logger.debug(f"Image path: {image_path}")
+        # Verifica si la imagen existe antes de intentar enviarla
+        if os.path.exists(image_path):
+            return send_file(image_path, mimetype='image/jpg')
+        else:
+            # Retorna un error 404 si la imagen no se encuentra
+            return abort(404, description="Image not found")
+    except Exception as e:
+        # Maneja cualquier otro error que pueda ocurrir
+        return str(e)
+    
+
+
+def save_image(image_name, image_data):
+    image_path = os.path.join(current_app.root_path, 'static/images', image_name)
+    try:
+        with open(image_path, 'wb') as f:
+            f.write(image_data)
+        if os.path.exists(image_path):
+            app.logger.debug(f"Image successfully saved at {image_path}")
+        else:
+            app.logger.debug(f"Failed to save image at {image_path}")
+    except Exception as e:
+        app.logger.error(f"Error saving image: {e}")
 
 
 @app.errorhandler(413)
